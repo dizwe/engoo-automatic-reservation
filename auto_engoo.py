@@ -12,6 +12,12 @@ def read_id_pw(site_name):
 
     return id, password
 
+def read_reservation_info():
+    """Read private info"""
+    info = readAndSave.read_json('reservation_info.json', 'utf8')
+
+    return info["teacher_num"], info["reserve_time"], info["class_holiday"], info["send_to"]
+
 
 def send_email_when_error_happens(error, send_to):
     import smtplib
@@ -123,13 +129,11 @@ class AutoReserveEngoo:
         else: # If I didn't reserve
             selenium_reserve(self.id, self.password, self.teacher_num, date_time, self.send_to)
     def manual_reserve(self):
-        date_time = engoo_date_str(self.reserve_time)
+        date_time = engoo_date_str(self.reserve_time, False)
         write_reserve_date(date_time)
 
 if __name__ == "__main__":
-    me = AutoReserveEngoo(teacher_num=[' ',' '],
-                          reserve_time=' ',
-                          class_holiday=False, #if you have a class on holiday also.
-                          send_to="") #if you don't want to send email, plz write None
+    teacher_num, reserve_time, class_holiday, send_to =read_reservation_info()
+    me = AutoReserveEngoo(list(teacher_num), reserve_time, bool(class_holiday), send_to) #if you don't want to send email, plz write None
     me.reserve()
     #me.manual_reserve() # if you already resererve class manually, execute it.
