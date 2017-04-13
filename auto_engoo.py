@@ -51,6 +51,14 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
     driver.find_element_by_name('member[password]').send_keys(password)
     driver.find_element_by_xpath('//*[@id="new_member"]/div[3]/div[4]/button').click() #xpath
 
+    #이미 예약했는지 확인
+    driver.get('https://engoo.co.kr/dashboard')
+    available_reserve_num = driver.find_element_by_class_name('lesson-badge-remaining').text
+    if int(available_reserve_num) == 0: # if you already reserved.
+        write_reserve_date(date_time)
+        print('You already reserved')
+        return
+
     #예약될때까지 선생님 반복
     for teacher_num in teacher_nums:
         driver.get('https://engoo.co.kr/teachers/'+ teacher_num)
@@ -137,3 +145,4 @@ if __name__ == "__main__":
     me = AutoReserveEngoo(list(teacher_num), reserve_time, bool(class_holiday), send_to) #if you don't want to send email, plz write None
     me.reserve()
     #me.manual_reserve() # if you already resererve class manually, execute it.
+
