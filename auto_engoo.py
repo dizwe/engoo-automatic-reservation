@@ -69,6 +69,7 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
             driver.find_element_by_id('reserve_student_wish').send_keys('hello') # When I don't write it, unknown error happens
             #driver.find_element_by_xpath('//*[@id="ticket_btn"]').click() # ticket
             driver.find_element_by_xpath('//*[@id="reserve_id"]').click() # normal
+            driver.quit()
             write_reserve_date(date_time) #write the reserved date when succeed
             return
         except ElementNotVisibleException: # Already have a class.
@@ -103,6 +104,7 @@ def engoo_date_str(reserve_time, class_holiday):
     if not class_holiday: #if you don't have class on holiday
         next_day = loop_until_workday(tomorrow)
         date = next_day.strftime('%Y-%m-%d')
+ 
     else:
         date = tomorrow.strftime('%Y-%m-%d')
 
@@ -142,7 +144,7 @@ class AutoReserveEngoo:
 
 if __name__ == "__main__":
     teacher_num, reserve_time, class_holiday, send_to =read_reservation_info()
-    me = AutoReserveEngoo(list(teacher_num), reserve_time, bool(class_holiday), send_to) #if you don't want to send email, plz write None
+    me = AutoReserveEngoo(list(teacher_num), reserve_time, class_holiday=="True" , send_to) #if you don't want to send email, plz write None
     me.reserve()
     #me.manual_reserve() # if you already resererve class manually, execute it.
 
