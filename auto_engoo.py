@@ -4,6 +4,11 @@ from selenium.common.exceptions import ElementNotVisibleException
 import time
 import datetime
 import readAndSave
+import logging
+import logging.handlers
+# from selenium.webdriver.common.keys import Keys
+# from pyvirtualdisplay import Display
+# import os
 
 def read_id_pw(site_name):
     """Read private info"""
@@ -41,53 +46,76 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
     """Reserve using selenium"""
     # phantom = webdriver.PhantomJS(r'C:\Python35\selenium\webdriver\phantomjs\bin\phantomjs.exe')
     # phantom.implicitly_wait(3)
+    # driver = phantom
+    # chromedirver = r'C:\Python35\selenium\webdriver\chromedriver\chromedriver.exe'
+    # os.environ['webdriver.chrome.driver'] = chromedirver
+    # display = Display(visible=0, size=(800, 600))
+    # display.start()
+
+    #로그 기록
+    logger = logging.getLogger('mylogger')
+    fomatter = logging.Formatter('[%(levelname)s|%(filename)s:%(lineno)s] %(asctime)s > %(message)s')
+    fileHandler = logging.FileHandler('./error.log')
+    fileHandler.setFormatter(fomatter)
+    logger.addHandler(fileHandler)
+    logger.setLevel(logging.DEBUG)
+    logger.info("------class for " + date_time)
+
     chrome = webdriver.Chrome(r'C:\Python35\selenium\webdriver\chromedriver\chromedriver.exe')
     chrome.implicitly_wait(3)
     driver = chrome
 
-    # 로그인
-    driver.get('https://engoo.co.kr/members/sign_in')  # url
-    driver.find_element_by_name('member[email]').send_keys(id)
-    driver.find_element_by_name('member[password]').send_keys(password)
-    driver.find_element_by_xpath('//*[@id="new_member"]/div[3]/div[4]/button').click() #xpath
+    try:
+        # 로그인
+        driver.get('https://engoo.co.kr/members/sign_in')  # url
+        logger.info("get 완료")
+        driver.find_element_by_name('member[email]').send_keys(id)
+        logger.info("id 완료")
+        driver.find_element_by_name('member[password]').send_keys(password)
+        driver.find_element_by_xpath('//*[@id="new_member"]/div[3]/div[4]/button').click() #xpath
 
-    #이미 예약했는지 확인
-    driver.get('https://engoo.co.kr/dashboard')
-    available_reserve_num = driver.find_element_by_class_name('lesson-badge-remaining').text
-    if int(available_reserve_num) == 0: # if you already reserved.
-        write_reserve_date(date_time)
-        print('You already reserved')
-        return
-
-    #예약될때까지 선생님 반복
-    for teacher_num in teacher_nums:
-        driver.get('https://engoo.co.kr/teachers/'+ teacher_num)
-        driver.find_element_by_id(date_time).click()
-        time.sleep(3) # To turn on the modal, You need to have a time sleep
-
-        try:
-            driver.find_element_by_id('reserve_student_wish').send_keys('hello') # When I don't write it, unknown error happens
-            #driver.find_element_by_xpath('//*[@id="ticket_btn"]').click() # ticket
-            driver.find_element_by_xpath('//*[@id="reserve_id"]').click() # normal
-            driver.quit()
-            write_reserve_date(date_time) #write the reserved date when succeed
+        #이미 예약했는지 확인
+        driver.get('https://engoo.co.kr/dashboard')
+        available_reserve_num = driver.find_element_by_class_name('lesson-badge-remaining').text
+        if int(available_reserve_num) == 0: # if you already reserved.
+            write_reserve_date(date_time)
+            print('You already reserved')
             return
-        except ElementNotVisibleException: # Already have a class.
+
+        #예약될때까지 선생님 반복
+        for teacher_num in teacher_nums:
+            driver.get('https://engoo.co.kr/teachers/'+ teacher_num)
+            driver.find_element_by_id(date_time).click()
+            time.sleep(3) # To turn on the modal, You need to have a time sleep
+
             try:
-                driver.find_element_by_xpath('//*[@id="notifyDialog"]/div/div/div[3]/button').click() # 이미 예약했을때에 나타나는 창
+                driver.find_element_by_id('reserve_student_wish').send_keys('hello') # When I don't write it, unknown error happens
+                #driver.find_element_by_xpath('//*[@id="ticket_btn"]').click() # ticket
+                driver.find_element_by_xpath('//*[@id="reserve_id"]').click() # normal
                 driver.quit()
-                write_reserve_date(date_time)
-                print('You already reserved')
+                logger.info(teacher_num+"예약 성공")
+                write_reserve_date(date_time) #write the reserved date when succeed
                 return
-            except ElementNotVisibleException as e: #수업이 이미 있을 때. -> 다른 선생님을 바꾸기
-                print(e)
-                continue
-            except Exception as e2: # Other error -> Mail
-                if send_to != "":
-                    send_email_when_error_happens(e2, send_to)
+            except ElementNotVisibleException: # Already have a class.
+                try:
+                    driver.find_element_by_xpath('//*[@id="notifyDialog"]/div/div/div[3]/button').click() # 이미 예약했을때에 나타나는 창
+                    driver.quit()
+                    write_reserve_date(date_time)
+                    print('You already reserved')
+                    return
+                except ElementNotVisibleException as e: #수업이 이미 있을 때. -> 다른 선생님을 바꾸기
+                    logger.error(teacher_num+"수업 이미 있음")
+                    continue
+                except Exception as e2: # Other error -> Mail
+                    logger.error(teacher_num + e2)
+                    if send_to != "":
+                        send_email_when_error_happens(e2, send_to)
+    except Exception as e3:
+        logger.error(e3)
 
     if send_to != "":
-        send_email_when_error_happens('There is no class to reserve. plz check', send_to) # 다른 선생님도 다 안되었을때 -> 메일 보내기
+        send_email_when_error_happens('There is no class to reserve. plz check',
+                                      send_to)  # 다른 선생님도 다 안되었을때 -> 메일 보내기
 
 
 def engoo_date_str(reserve_time, class_holiday):
@@ -136,7 +164,7 @@ class AutoReserveEngoo:
         if already_reserve_tf(date_time):
             print('You already reserved')
             return
-        else: # If I didn't reserve
+        else:  # If I didn't reserve
             selenium_reserve(self.id, self.password, self.teacher_num, date_time, self.send_to)
     def manual_reserve(self):
         date_time = engoo_date_str(self.reserve_time, False)
