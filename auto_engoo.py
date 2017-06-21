@@ -85,7 +85,9 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
         #예약될때까지 선생님 반복
         for teacher_num in teacher_nums:
             driver.get('https://engoo.co.kr/teachers/'+ teacher_num)
-            driver.find_element_by_id(date_time).click()
+            class_time_button = driver.find_element_by_id(date_time)
+            time.sleep(1)
+            class_time.click()
             time.sleep(3) # To turn on the modal, You need to have a time sleep
 
             try:
