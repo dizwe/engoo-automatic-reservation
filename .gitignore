@@ -2,3 +2,7 @@ debug.log
 ghostdriver.log
 .idea/workspace.xml
 google.png
+__pycache__/readAndSave.cpython-35.pyc
+.idea/modules.xml
+chromedriver.exe
+error.log

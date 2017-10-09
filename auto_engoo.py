@@ -1,6 +1,6 @@
 
 from selenium import webdriver
-from selenium.common.exceptions import ElementNotVisibleException
+from selenium.common.exceptions import ElementNotVisibleException,WebDriverException
 import time
 import datetime
 import readAndSave
@@ -10,12 +10,14 @@ import logging.handlers
 # from pyvirtualdisplay import Display
 # import os
 
+
 def read_id_pw(site_name):
     """Read private info"""
     info = readAndSave.read_json('id_pass.json', 'utf8')
     id, password = info[site_name]['id'], info[site_name]['password']
 
     return id, password
+
 
 def read_reservation_info():
     """Read private info"""
@@ -61,7 +63,11 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
     logger.setLevel(logging.DEBUG)
     logger.info("------class for " + date_time)
 
-    chrome = webdriver.Chrome(r'C:\Python35\selenium\webdriver\chromedriver\chromedriver.exe')
+    try:
+        chrome = webdriver.Chrome(r'C:\Python35\selenium\webdriver\chromedriver\chromedriver.exe')
+    except WebDriverException:
+        chrome = webdriver.Chrome(r'chromedriver.exe')
+
     chrome.implicitly_wait(3)
     driver = chrome
 
