@@ -5,5 +5,5 @@ setup(  name = "auto_engoo",
         version = "1.0",
         description = "automatically reserving",
         author = "dizwe",
-        executables = [Executable("write_info.py")])
+        executables = [Executable("auto_engoo.py"),Executable("type_info.py")])
 
