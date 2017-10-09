@@ -86,8 +86,10 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
         for teacher_num in teacher_nums:
             driver.get('https://engoo.co.kr/teachers/'+ teacher_num)
             class_time_button = driver.find_element_by_id(date_time)
+            class_time_button = class_time_button.find_element_by_tag_name('a')
             time.sleep(1)
-            class_time.click()
+            # class_time_button.click()하면 위에 어떤 창이 싸여있으면 안됨
+            driver.execute_script("arguments[0].click();", class_time_button)
             time.sleep(3) # To turn on the modal, You need to have a time sleep
 
             try:
@@ -163,12 +165,14 @@ class AutoReserveEngoo:
         self.class_holiday = class_holiday
     def reserve(self):
         date_time = engoo_date_str(self.reserve_time, self.class_holiday)
+
         if already_reserve_tf(date_time):
             print('You already reserved')
             return
         else:  # If I didn't reserve
             selenium_reserve(self.id, self.password, self.teacher_num, date_time, self.send_to)
     def manual_reserve(self):
+        """직접 예약"""
         date_time = engoo_date_str(self.reserve_time, False)
         write_reserve_date(date_time)
 
