@@ -100,41 +100,25 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
                 # class_time_button.click()하면 위에 어떤 창이 싸여있으면 안됨
                 driver.execute_script("arguments[0].click();", class_time_button)
                 time.sleep(3) # To turn on the modal, You need to have a time sleep
-            except NoSuchElementException as e:
-                # 아예 수업을 열지를 않았을때
-                logger.error(teacher_num + "수업 아예 없음.")
+            except NoSuchElementException:
+                # a tag 를 못읽는 경우( 아예 수업을 열지를 않았을때/이미 수업이 있을때)
+                logger.error(teacher_num + "수업 아예 없거나/이미 있음")
                 continue
 
-            """예약하기"""
-            try:
-                driver.find_element_by_id('reserve_student_wish').send_keys('hello') # When I don't write it, unknown error happens
-                #driver.find_element_by_xpath('//*[@id="ticket_btn"]').click() # ticket
-                driver.find_element_by_xpath('//*[@id="reserve_id"]').click() # normal
-                driver.quit()
-                logger.info(teacher_num+"예약 성공")
-                write_reserve_date(date_time) #write the reserved date when succeed
-                return
-            
-            except ElementNotVisibleException: # Already have a class.
-                try:
-                    driver.find_element_by_xpath('//*[@id="notifyDialog"]/div/div/div[3]/button').click() # 이미 예약했을때에 나타나는 창
-                    driver.quit()
-                    write_reserve_date(date_time)
-                    print('You already reserved')
-                    return
-                except ElementNotVisibleException as e: #수업이 이미 있을 때. -> 다른 선생님을 바꾸기
-                    logger.error(teacher_num+"수업 이미 있음")
-                    continue
-                except Exception as e2: # Other error -> Mail
-                    logger.error(teacher_num + e2)
-                    if send_to != "":
-                        send_email_when_error_happens(e2, send_to)
+            """modal 창 띄어서 예약하기"""
+            # When I don't write it, unknown error happens
+            driver.find_element_by_id('reserve_student_wish').send_keys('hello')
+            driver.find_element_by_xpath('//*[@id="reserve_id"]').click()
+            driver.quit()
+            logger.info(teacher_num+"예약 성공")
+            write_reserve_date(date_time) #write the reserved date when succeed
+            return
+
     except Exception as e3:
         logger.error(e3)
-
-    if send_to != "":
-        send_email_when_error_happens('There is no class to reserve. plz check',
-                                      send_to)  # 다른 선생님도 다 안되었을때 -> 메일 보내기
+        if send_to != "":
+            send_email_when_error_happens('There is no class to reserve. plz check\n error:' + str(e3),
+                                          send_to)  # 다른 선생님도 다 안되었을때 -> 메일 보내기
 
 
 def engoo_date_str(reserve_time, class_holiday):
@@ -148,7 +132,8 @@ def engoo_date_str(reserve_time, class_holiday):
         else:
             return loop_until_workday(calculating_data + datetime.timedelta(days=1))
 
-    if not class_holiday: #if you don't have class on holiday
+    if not class_holiday:
+        # if you don't have class on holiday
         next_day = loop_until_workday(tomorrow)
         date = next_day.strftime('%Y-%m-%d')
  
@@ -178,6 +163,7 @@ class AutoReserveEngoo:
         self.reserve_time = reserve_time
         self.send_to = send_to
         self.class_holiday = class_holiday
+
     def reserve(self):
         date_time = engoo_date_str(self.reserve_time, self.class_holiday)
 
@@ -186,6 +172,7 @@ class AutoReserveEngoo:
             return
         else:  # If I didn't reserve
             selenium_reserve(self.id, self.password, self.teacher_num, date_time, self.send_to)
+
     def manual_reserve(self):
         """직접 예약"""
         date_time = engoo_date_str(self.reserve_time, False)
