@@ -1,6 +1,6 @@
 
 from selenium import webdriver
-from selenium.common.exceptions import ElementNotVisibleException,WebDriverException
+from selenium.common.exceptions import ElementNotVisibleException, WebDriverException, NoSuchElementException
 import time
 import datetime
 import readAndSave
@@ -92,12 +92,20 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
         for teacher_num in teacher_nums:
             driver.get('https://engoo.co.kr/teachers/'+ teacher_num)
             class_time_button = driver.find_element_by_id(date_time)
-            class_time_button = class_time_button.find_element_by_tag_name('a')
-            time.sleep(1)
-            # class_time_button.click()하면 위에 어떤 창이 싸여있으면 안됨
-            driver.execute_script("arguments[0].click();", class_time_button)
-            time.sleep(3) # To turn on the modal, You need to have a time sleep
 
+            """수업예약 링크 열기 링크 없으면 다른 선생님"""
+            try:
+                class_time_button = class_time_button.find_element_by_tag_name('a')
+                time.sleep(1)
+                # class_time_button.click()하면 위에 어떤 창이 싸여있으면 안됨
+                driver.execute_script("arguments[0].click();", class_time_button)
+                time.sleep(3) # To turn on the modal, You need to have a time sleep
+            except NoSuchElementException as e:
+                # 아예 수업을 열지를 않았을때
+                logger.error(teacher_num + "수업 아예 없음.")
+                continue
+
+            """예약하기"""
             try:
                 driver.find_element_by_id('reserve_student_wish').send_keys('hello') # When I don't write it, unknown error happens
                 #driver.find_element_by_xpath('//*[@id="ticket_btn"]').click() # ticket
@@ -106,6 +114,7 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
                 logger.info(teacher_num+"예약 성공")
                 write_reserve_date(date_time) #write the reserved date when succeed
                 return
+            
             except ElementNotVisibleException: # Already have a class.
                 try:
                     driver.find_element_by_xpath('//*[@id="notifyDialog"]/div/div/div[3]/button').click() # 이미 예약했을때에 나타나는 창
