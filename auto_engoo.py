@@ -45,15 +45,6 @@ def send_email_when_error_happens(error, send_to):
 
 
 def selenium_favorite_reserve(id, password, teacher_nums, date_time, send_to):
-    """Reserve using selenium"""
-    # phantom = webdriver.PhantomJS(r'C:\Python35\selenium\webdriver\phantomjs\bin\phantomjs.exe')
-    # phantom.implicitly_wait(3)
-    # driver = phantom
-    # chromedirver = r'C:\Python35\selenium\webdriver\chromedriver\chromedriver.exe'
-    # os.environ['webdriver.chrome.driver'] = chromedirver
-    # display = Display(visible=0, size=(800, 600))
-    # display.start()
-
     #로그 기록
     logger = logging.getLogger('mylogger')
     fomatter = logging.Formatter('[%(levelname)s|%(filename)s:%(lineno)s] %(asctime)s > %(message)s')
@@ -92,7 +83,6 @@ def selenium_favorite_reserve(id, password, teacher_nums, date_time, send_to):
         for teacher_num in teacher_nums:
             driver.get('https://engoo.co.kr/teachers/'+ teacher_num)
 
-
             """수업예약 링크 열기 링크 없으면 다른 선생님"""
             try:
                 class_time_button = driver.find_element_by_id(date_time)
@@ -102,7 +92,7 @@ def selenium_favorite_reserve(id, password, teacher_nums, date_time, send_to):
                 driver.execute_script("arguments[0].click();", class_time_button)
                 time.sleep(3) # To turn on the modal, You need to have a time sleep
             except NoSuchElementException:
-                # a tag 를 못읽는 경우( 아예 수업을 열지를 않았을때/이미 수업이 있을때)
+                # a tag 를 못읽는 경우( 아예 수업을 열지를 않았을때/이미 수업이 있을때/선생님이 없어졌을때)
                 logger.error(teacher_num + "수업 아예 없거나/이미 있음")
                 continue
 
@@ -115,11 +105,49 @@ def selenium_favorite_reserve(id, password, teacher_nums, date_time, send_to):
             write_reserve_date(date_time) #write the reserved date when succeed
             return
 
+        selenium_random_reserve(driver, date_time, logger, send_to)
+
     except Exception as e3:
         logger.error(e3)
         if send_to != "":
             send_email_when_error_happens('There is no class to reserve. plz check\n error:' + str(e3),
                                           send_to)  # 다른 선생님도 다 안되었을때 -> 메일 보내기
+
+
+def selenium_random_reserve(driver, reserve_date_time, logger, send_to):
+    try:
+        date_time_split = reserve_date_time.split('_') # dt_2018-01-15_07-00-00
+        date_str = date_time_split[1]
+        time_str = date_time_split[2].replace('-', ':')[:-3]
+
+        booking_time = 'search[date]={}&search[bookable]=0&search[limit]=30&search[time_start]={}-&search[time_end]={}-'\
+                       .format(date_str, time_str, time_str)
+        random_booking_url = 'https://engoo.co.kr/books?utf8=✓&'+booking_time+'&search[free_word]=&available=검색'
+        driver.get(random_booking_url)
+
+        class_button_xpath = '//*[@id="{}"]/span[2]/a'.format(reserve_date_time)
+        class_time_buttons = driver.find_elements_by_xpath(class_button_xpath) # 여러개가 있음
+
+        for class_time_button in enumerate(class_time_buttons):
+            try:
+                driver.execute_script("arguments[0].click();", class_time_button)
+                # modal
+                time.sleep(1)
+                driver.find_element_by_id('reserve_student_wish').send_keys('hello')
+                driver.find_element_by_xpath('//*[@id="reserve_id"]').click()
+                driver.quit()
+                logger.info("random 예약 성공")
+                write_reserve_date(reserve_date_time)  # write the reserved date when succeed
+                return
+            except ElementNotVisibleException:
+                driver.find_element_by_xpath('//*[@id="notify_native_dialog"]/div/div/div[1]/button').click()
+                logger.info("random 예약 성공")
+                continue
+    except Exception as e3:
+        logger.error(e3)
+        if send_to != "":
+            send_email_when_error_happens('There is no class to reserve. plz check\n error:' + str(e3),
+                                          send_to)
 
 
 def engoo_date_str(reserve_time, class_holiday):

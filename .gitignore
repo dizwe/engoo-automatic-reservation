@@ -6,3 +6,6 @@ __pycache__/readAndSave.cpython-35.pyc
 .idea/modules.xml
 chromedriver.exe
 error.log
+DId_I_reserved.json
+id_pass.json
+reservation_info.json
