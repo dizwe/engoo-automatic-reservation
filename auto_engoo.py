@@ -44,7 +44,7 @@ def send_email_when_error_happens(error, send_to):
         print('log in fail')
 
 
-def selenium_reserve(id, password, teacher_nums, date_time, send_to):
+def selenium_favorite_reserve(id, password, teacher_nums, date_time, send_to):
     """Reserve using selenium"""
     # phantom = webdriver.PhantomJS(r'C:\Python35\selenium\webdriver\phantomjs\bin\phantomjs.exe')
     # phantom.implicitly_wait(3)
@@ -80,7 +80,7 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
         driver.find_element_by_name('member[password]').send_keys(password)
         driver.find_element_by_xpath('//*[@id="new_member"]/div[3]/div[4]/button').click() #xpath
 
-        #이미 예약했는지 확인
+        #이미 예약했는지 확인(두번 방지하는거다-미리 내가 예약할수도 있으니까)
         driver.get('https://engoo.co.kr/dashboard')
         available_reserve_num = driver.find_element_by_class_name('lesson-badge-remaining').text
         if int(available_reserve_num) == 0: # if you already reserved.
@@ -91,10 +91,11 @@ def selenium_reserve(id, password, teacher_nums, date_time, send_to):
         #예약될때까지 선생님 반복
         for teacher_num in teacher_nums:
             driver.get('https://engoo.co.kr/teachers/'+ teacher_num)
-            class_time_button = driver.find_element_by_id(date_time)
+
 
             """수업예약 링크 열기 링크 없으면 다른 선생님"""
             try:
+                class_time_button = driver.find_element_by_id(date_time)
                 class_time_button = class_time_button.find_element_by_tag_name('a')
                 time.sleep(1)
                 # class_time_button.click()하면 위에 어떤 창이 싸여있으면 안됨
@@ -171,7 +172,7 @@ class AutoReserveEngoo:
             print('You already reserved')
             return
         else:  # If I didn't reserve
-            selenium_reserve(self.id, self.password, self.teacher_num, date_time, self.send_to)
+            selenium_favorite_reserve(self.id, self.password, self.teacher_num, date_time, self.send_to)
 
     def manual_reserve(self):
         """직접 예약"""
